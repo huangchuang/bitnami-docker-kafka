@@ -1,57 +1,63 @@
 version: "2"
 
+networks:
+  kafka-tier:
+    driver: bridge
+
 services:
   zookeeper:
+    container_name: zookeeper
     image: docker.io/bitnami/zookeeper:3.7
+    networks:
+      - kafka-tier
     ports:
       - "2181"
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
     volumes:
-      - zookeeper_data:/bitnami/zookeeper
-  kafka-0:
-    image: docker.io/bitnami/kafka:3
-    ports:
-      - "9092"
-    environment:
-      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_CFG_BROKER_ID=0
-      - ALLOW_PLAINTEXT_LISTENER=yes
-    volumes:
-      - kafka_0_data:/bitnami/kafka
-    depends_on:
-      - zookeeper
+      - /mnt/wsl/zookeeper-data:/bitnami/zookeeper
   kafka-1:
-    image: docker.io/bitnami/kafka:3
+    container_name: kafka-1
+    image: docker.io/bitnami/kafka:latest
+    networks:
+      - kafka-tier
+    ports:
+      - "9092"
+    environment:
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    volumes:
+      - /mnt/wsl/kafka-1-data:/bitnami/kafka
+    depends_on:
+      - zookeeper
+  kafka-client-1:
+    container_name: kafka-client-1
+    image: docker.io/bitnami/kafka:latest
+    networks:
+      - kafka-tier
     ports:
       - "9092"
     environment:
       - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_CFG_BROKER_ID=1
       - ALLOW_PLAINTEXT_LISTENER=yes
     volumes:
-      - kafka_1_data:/bitnami/kafka
+      - /mnt/wsl/kafka-client-1-data:/bitnami/kafka
     depends_on:
-      - zookeeper
-  kafka-2:
-    image: docker.io/bitnami/kafka:3
+      - kafka-1
+  kafka-client-2:
+    container_name: kafka-client-2
+    image: docker.io/bitnami/kafka:latest
+    networks:
+      - kafka-tier
     ports:
       - "9092"
     environment:
       - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
-      - KAFKA_CFG_BROKER_ID=2
       - ALLOW_PLAINTEXT_LISTENER=yes
     volumes:
-      - kafka_2_data:/bitnami/kafka
+      - /mnt/wsl/kafka-client-2-data:/bitnami/kafka
     depends_on:
-      - zookeeper
+      - kafka-client-1
 
-volumes:
-  zookeeper_data:
-    driver: local
-  kafka_0_data:
-    driver: local
-  kafka_1_data:
-    driver: local
-  kafka_2_data:
-    driver: local
